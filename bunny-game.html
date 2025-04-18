@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Bunny Egg Jump</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #87CEEB;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 400px;
+            background-color: #87CEEB;
+            overflow: hidden;
+            border: 3px solid #333;
+            border-radius: 10px;
+        }
+        
+        #game-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #333;
+            font-size: 20px;
+            z-index: 10;
+        }
+        
+        #controls-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #333;
+            font-size: 14px;
+            z-index: 10;
+            text-align: right;
+        }
+        
+        #ground {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 50px;
+            background-color: #8B4513;
+        }
+        
+        #grass {
+            position: absolute;
+            bottom: 50px;
+            width: 100%;
+            height: 20px;
+            background-color: #7CFC00;
+        }
+        
+        #bunny {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            bottom: 70px;
+            left: 100px;
+            background-color: white;
+            border-radius: 50% 50% 50% 50%;
+            z-index: 5;
+        }
+        
+        .bunny-ear {
+            position: absolute;
+            width: 15px;
+            height: 30px;
+            background-color: white;
+            border-radius: 50% 50% 0 0;
+            top: -25px;
+        }
+        
+        .ear-left {
+            left: 10px;
+            transform: rotate(-10deg);
+        }
+        
+        .ear-right {
+            right: 10px;
+            transform: rotate(10deg);
+        }
+        
+        .bunny-eye {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: black;
+            border-radius: 50%;
+            top: 20px;
+        }
+        
+        .eye-left {
+            left: 15px;
+        }
+        
+        .eye-right {
+            right: 15px;
+        }
+        
+        .bunny-nose {
+            position: absolute;
+            width: 10px;
+            height: 6px;
+            background-color: pink;
+            border-radius: 50%;
+            top: 30px;
+            left: 25px;
+        }
+        
+        .bunny-tail {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background-color: white;
+            border-radius: 50%;
+            bottom: 10px;
+            left: -5px;
+        }
+        
+        .egg {
+            position: absolute;
+            width: 30px;
+            height: 40px;
+            border-radius: 50% 50% 50% 50%;
+            bottom: 70px;
+        }
+        
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 36px;
+            z-index: 100;
+            display: none;
+        }
+        
+        #restart-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 24px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        #restart-btn:hover {
+            background-color: #45a049;
+        }
+        
+        #clouds {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        .cloud {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="game-info">Score: <span id="score">0</span></div>
+        <div id="controls-info">Jump: Click, Touch, or Spacebar</div>
+        <div id="clouds"></div>
+        <div id="bunny">
+            <div class="bunny-ear ear-left"></div>
+            <div class="bunny-ear ear-right"></div>
+            <div class="bunny-eye eye-left"></div>
+            <div class="bunny-eye eye-right"></div>
+            <div class="bunny-nose"></div>
+            <div class="bunny-tail"></div>
+        </div>
+        <div id="grass"></div>
+        <div id="ground"></div>
+        <div id="game-over">
+            <div>Game Over!</div>
+            <div>Your Score: <span id="final-score">0</span></div>
+            <button id="restart-btn">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        const bunny = document.getElementById('bunny');
+        const gameContainer = document.getElementById('game-container');
+        const scoreElement = document.getElementById('score');
+        const finalScoreElement = document.getElementById('final-score');
+        const gameOverScreen = document.getElementById('game-over');
+        const restartBtn = document.getElementById('restart-btn');
+        const cloudsContainer = document.getElementById('clouds');
+        
+        let isJumping = false;
+        let gravity = 0.9;
+        let jumpForce = 15;
+        let bunnyVelocity = 0;
+        let score = 0;
+        let gameSpeed = 5;
+        let gameRunning = true;
+        let eggs = [];
+        let eggColors = ['#FF5733', '#33FF57', '#3357FF', '#F3FF33', '#FF33F3'];
+        let lastEggTime = 0;
+        let minEggInterval = 1000; // Minimum time between eggs in milliseconds
+        let maxEggInterval = 2000; // Maximum time between eggs in milliseconds
+        let nextEggTime = getRandomEggTime();
+        
+        // Create some clouds
+        function createClouds() {
+            const cloudCount = 5;
+            for (let i = 0; i < cloudCount; i++) {
+                const cloud = document.createElement('div');
+                cloud.className = 'cloud';
+                
+                const size = Math.random() * 50 + 30;
+                const top = Math.random() * 100;
+                const left = Math.random() * 100;
+                const speed = Math.random() * 0.5 + 0.1;
+                
+                cloud.style.width = size + 'px';
+                cloud.style.height = size / 2 + 'px';
+                cloud.style.top = top + 'px';
+                cloud.style.left = left + '%';
+                cloud.dataset.speed = speed;
+                
+                cloudsContainer.appendChild(cloud);
+            }
+        }
+        
+        // Move clouds
+        function moveClouds() {
+            const clouds = document.querySelectorAll('.cloud');
+            clouds.forEach(cloud => {
+                const currentLeft = parseFloat(cloud.style.left);
+                const speed = parseFloat(cloud.dataset.speed);
+                
+                let newLeft = currentLeft - speed * 0.1;
+                if (newLeft < -10) {
+                    newLeft = 110;
+                }
+                
+                cloud.style.left = newLeft + '%';
+            });
+        }
+        
+        // Generate random time for next egg
+        function getRandomEggTime() {
+            return Math.floor(Math.random() * (maxEggInterval - minEggInterval + 1)) + minEggInterval;
+        }
+        
+        // Create an egg
+        function createEgg() {
+            const egg = document.createElement('div');
+            egg.className = 'egg';
+            egg.style.left = gameContainer.offsetWidth + 'px';
+            egg.style.backgroundColor = eggColors[Math.floor(Math.random() * eggColors.length)];
+            gameContainer.appendChild(egg);
+            eggs.push({
+                element: egg,
+                passed: false
+            });
+        }
+        
+        // Move eggs
+        function moveEggs() {
+            eggs.forEach((egg, index) => {
+                const currentLeft = parseInt(egg.element.style.left);
+                const newLeft = currentLeft - gameSpeed;
+                egg.element.style.left = newLeft + 'px';
+                
+                // Check if egg is off screen
+                if (newLeft < -50) {
+                    gameContainer.removeChild(egg.element);
+                    eggs.splice(index, 1);
+                }
+                
+                // Check if bunny passed egg
+                if (!egg.passed && newLeft < 100) {
+                    egg.passed = true;
+                    score++;
+                    scoreElement.textContent = score;
+                    
+                    // Increase game speed every 5 points
+                    if (score % 5 === 0) {
+                        gameSpeed += 0.5;
+                    }
+                }
+                
+                // Check for collision
+                if (gameRunning && checkCollision(bunny, egg.element)) {
+                    gameOver();
+                }
+            });
+        }
+        
+        // Check for collision between bunny and egg
+        function checkCollision(bunny, egg) {
+            const bunnyRect = bunny.getBoundingClientRect();
+            const eggRect = egg.getBoundingClientRect();
+            
+            return !(
+                bunnyRect.right < eggRect.left + 10 ||
+                bunnyRect.left > eggRect.right - 10 ||
+                bunnyRect.bottom < eggRect.top + 10 ||
+                bunnyRect.top > eggRect.bottom - 10
+            );
+        }
+        
+        // Handle jump
+        function jump() {
+            if (!isJumping && gameRunning) {
+                isJumping = true;
+                bunnyVelocity = -jumpForce;
+            }
+        }
+        
+        // Apply gravity and handle jumping
+        function applyGravity() {
+            const bunnyBottom = parseInt(window.getComputedStyle(bunny).getPropertyValue('bottom'));
+            
+            if (isJumping) {
+                bunnyVelocity += gravity;
+                const newBottom = bunnyBottom - bunnyVelocity;
+                
+                if (newBottom <= 70) {  // Ground level
+                    bunny.style.bottom = '70px';
+                    isJumping = false;
+                    bunnyVelocity = 0;
+                } else {
+                    bunny.style.bottom = newBottom + 'px';
+                }
+            }
+        }
+        
+        // Game over function
+        function gameOver() {
+            gameRunning = false;
+            finalScoreElement.textContent = score;
+            gameOverScreen.style.display = 'flex';
+        }
+        
+        // Restart game
+        function restartGame() {
+            // Reset game variables
+            score = 0;
+            gameSpeed = 5;
+            gameRunning = true;
+            
+            // Clear eggs
+            eggs.forEach(egg => {
+                gameContainer.removeChild(egg.element);
+            });
+            eggs = [];
+            
+            // Reset score display
+            scoreElement.textContent = '0';
+            
+            // Hide game over screen
+            gameOverScreen.style.display = 'none';
+            
+            // Reset egg timing
+            lastEggTime = 0;
+            nextEggTime = getRandomEggTime();
+        }
+        
+        // Game loop
+        function gameLoop(timestamp) {
+            if (gameRunning) {
+                // Create new egg if it's time
+                if (timestamp - lastEggTime > nextEggTime) {
+                    createEgg();
+                    lastEggTime = timestamp;
+                    nextEggTime = getRandomEggTime();
+                }
+                
+                // Move game elements
+                moveEggs();
+                applyGravity();
+                moveClouds();
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Event listeners
+        gameContainer.addEventListener('click', jump);
+        
+        // Touch events for mobile
+        gameContainer.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            jump();
+        });
+        
+        // Prevent default touch behavior to avoid scrolling issues
+        document.addEventListener('touchmove', function(e) {
+            if (e.target === gameContainer || gameContainer.contains(e.target)) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        // Add keyboard event listener for spacebar
+        document.addEventListener('keydown', function(event) {
+            if (event.code === 'Space' || event.key === ' ') {
+                event.preventDefault(); // Prevent page scrolling on spacebar
+                jump();
+            }
+        });
+        
+        restartBtn.addEventListener('click', restartGame);
+        restartBtn.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            restartGame();
+        });
+        
+        // Initialize game
+        createClouds();
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
